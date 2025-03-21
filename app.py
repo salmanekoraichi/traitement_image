@@ -16,7 +16,8 @@ pages = [
     "Transformations Avancées",
     "Transformation de Fourier",
     "Autres Transformations",
-    "Effets Supplémentaires"
+    "Effets Supplémentaires",
+    "Filtres Spatiaux"
 ]
 selection = st.sidebar.radio("Choisissez une page", pages)
 
@@ -32,7 +33,8 @@ if selection == "Accueil":
     - **Transformations Avancées** : Ajustement de luminosité/du contraste, flou gaussien et détection de contours.
     - **Transformation de Fourier** : Visualisation du spectre fréquentiel d’une image.
     - **Autres Transformations** : Histogramme et égalisation d’histogramme.
-    - **Effets Supplémentaires** : Filtre sepia, pencil sketch, effet cartoon, et ajout de watermark.
+    - **Effets Supplémentaires** : Filtre sepia, pencil sketch, effet cartoon et ajout de watermark.
+    - **Filtres Spatiaux** : Application de divers filtres dans le domaine spatial.
     """)
 
 # ------------------- Page des Transformations de Base -------------------
@@ -215,6 +217,64 @@ elif selection == "Effets Supplémentaires":
             st.image(watermarked_img, caption="Image avec Watermark", use_container_width=True)
         else:
             st.write("Sélectionnez un effet pour l'appliquer à l'image.")
+
+# ------------------- Page Filtres Spatiaux -------------------
+elif selection == "Filtres Spatiaux":
+    st.header("Filtres Spatiaux")
+    uploaded_file = st.file_uploader("Choisissez une image", type=["jpg", "jpeg", "png"], key="spatial")
+    
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Image Originale", use_container_width=True)
+        img = np.array(image)
+        
+        spatial_filter = st.selectbox("Choisissez un filtre spatial", 
+                                      ["Aucun", "Filtre Moyenneur", "Filtre Médian", "Filtre Laplacian", 
+                                       "Filtre Sobel", "Filtre Scharr", "Filtre Passe-Haut"])
+        if spatial_filter == "Filtre Moyenneur":
+            kernel_size = st.slider("Taille du noyau", 1, 15, 3)
+            kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size**2)
+            filtered = cv2.filter2D(img, -1, kernel)
+            st.image(filtered, caption="Filtre Moyenneur appliqué", use_container_width=True)
+        elif spatial_filter == "Filtre Médian":
+            kernel_size = st.slider("Taille du noyau impair", 3, 15, 3, step=2)
+            filtered = cv2.medianBlur(img, kernel_size)
+            st.image(filtered, caption="Filtre Médian appliqué", use_container_width=True)
+        elif spatial_filter == "Filtre Laplacian":
+            if len(img.shape) == 3:
+                gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = img
+            laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+            laplacian = np.uint8(np.absolute(laplacian))
+            st.image(laplacian, caption="Filtre Laplacian appliqué", use_container_width=True)
+        elif spatial_filter == "Filtre Sobel":
+            if len(img.shape) == 3:
+                gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = img
+            sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
+            sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+            sobel = cv2.magnitude(sobelx, sobely)
+            sobel = np.uint8(np.clip(sobel, 0, 255))
+            st.image(sobel, caption="Filtre Sobel appliqué", use_container_width=True)
+        elif spatial_filter == "Filtre Scharr":
+            if len(img.shape) == 3:
+                gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = img
+            scharrx = cv2.Scharr(gray, cv2.CV_64F, 1, 0)
+            scharry = cv2.Scharr(gray, cv2.CV_64F, 0, 1)
+            scharr = cv2.magnitude(scharrx, scharry)
+            scharr = np.uint8(np.clip(scharr, 0, 255))
+            st.image(scharr, caption="Filtre Scharr appliqué", use_container_width=True)
+        elif spatial_filter == "Filtre Passe-Haut":
+            kernel_size = st.slider("Taille du noyau pour le passe-bas", 3, 15, 3, step=2)
+            low_pass = cv2.blur(img, (kernel_size, kernel_size))
+            high_pass = cv2.subtract(img, low_pass)
+            st.image(high_pass, caption="Filtre Passe-Haut appliqué", use_container_width=True)
+        else:
+            st.write("Sélectionnez un filtre pour l'appliquer.")
 
 # ------------------- Footer / Signature -------------------
 st.markdown("---")
